@@ -1,10 +1,38 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { PrimaryButton } from "../../components/form/PrimaryButton";
 import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
+import { useAppContext } from "../../context/AppContext";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { loginUser } = useAppContext();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      setErrorMessage("Preencha e-mail e senha para continuar.");
+      return;
+    }
+
+    const success = loginUser(email, password);
+
+    if (!success) {
+      setErrorMessage("Usuário não encontrado. Tente outro e-mail.");
+      return;
+    }
+
+    setErrorMessage("");
+    navigate("/dashboard");
+  }
+
   return (
     <AppShell>
       <section className="mb-8 rounded-3xl bg-white p-8 shadow-sm">
@@ -26,49 +54,30 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <TextInput
               id="email"
               type="email"
               label="E-mail"
               placeholder="Digite seu e-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
 
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-slate-700"
-                >
-                  Senha
-                </label>
+            <TextInput
+              id="password"
+              type="password"
+              label="Senha"
+              placeholder="Digite sua senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-                <button
-                  type="button"
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                >
-                  Esqueci minha senha
-                </button>
+            {errorMessage ? (
+              <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+                {errorMessage}
               </div>
-
-              <TextInput
-                id="password"
-                type="password"
-                label=""
-                placeholder="Digite sua senha"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                id="remember"
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="remember" className="text-sm text-slate-600">
-                Manter minha conta conectada
-              </label>
-            </div>
+            ) : null}
 
             <PrimaryButton type="submit" fullWidth>
               Entrar
@@ -114,17 +123,6 @@ export default function LoginPage() {
                 </p>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-3xl bg-blue-600 p-6 text-white shadow-sm">
-            <p className="text-sm font-semibold text-blue-100">Mensagem</p>
-            <h3 className="mt-2 text-2xl font-bold">
-              Tecnologia pode ser simples e próxima
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-blue-50">
-              A Ponte Digital existe para tornar o aprendizado tecnológico mais
-              humano, acessível e útil para a vida real.
-            </p>
           </div>
         </aside>
       </section>

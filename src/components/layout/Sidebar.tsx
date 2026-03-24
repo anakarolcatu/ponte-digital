@@ -5,6 +5,7 @@ const links = [
   { label: "Aulas", to: "/aulas" },
   { label: "Cadastro", to: "/cadastro" },
   { label: "Painel", to: "/dashboard" },
+  { label: "Minhas aulas", to: "/minhas-aulas" },
 ];
 
 export function Sidebar() {

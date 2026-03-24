@@ -1,14 +1,73 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { PrimaryButton } from "../../components/form/PrimaryButton";
 import { TextAreaField } from "../../components/form/TextAreaField";
 import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
-
-type UserProfile = "Aprendiz" | "Voluntário";
+import { useAppContext } from "../../context/AppContext";
+import type { UserRole } from "../../types/user";
 
 export default function RegisterPage() {
-  const [selectedProfile, setSelectedProfile] = useState<UserProfile>("Aprendiz");
+  const navigate = useNavigate();
+  const { registerUser } = useAppContext();
+
+  const [selectedProfile, setSelectedProfile] = useState<UserRole>("Aprendiz");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [age, setAge] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [phone, setPhone] = useState("");
+  const [interest, setInterest] = useState("");
+  const [about, setAbout] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !confirmPassword.trim() ||
+      !age.trim() ||
+      !neighborhood.trim() ||
+      !phone.trim() ||
+      !interest.trim() ||
+      !about.trim()
+    ) {
+      setErrorMessage("Preencha todos os campos para continuar.");
+      return;
+    }
+
+    if (password.length < 4) {
+      setErrorMessage("A senha deve ter pelo menos 4 caracteres.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("As senhas não coincidem.");
+      return;
+    }
+
+    registerUser({
+      id: crypto.randomUUID(),
+      name,
+      email,
+      password,
+      age: Number(age),
+      neighborhood,
+      phone,
+      role: selectedProfile,
+      interest,
+      about,
+    });
+
+    setErrorMessage("");
+    navigate("/dashboard");
+  }
 
   return (
     <AppShell>
@@ -16,7 +75,7 @@ export default function RegisterPage() {
         <SectionHeader
           badge="Cadastro"
           title="Faça parte da Ponte Digital"
-          description="Cadastre-se para aprender tecnologia com apoio humanizado ou para compartilhar conhecimento como voluntário. Escolha o perfil que melhor representa você e preencha seus dados."
+          description="Cadastre-se para aprender tecnologia com apoio humanizado ou para compartilhar conhecimento como voluntário."
         />
       </section>
 
@@ -26,10 +85,6 @@ export default function RegisterPage() {
             <h2 className="text-2xl font-bold text-slate-800">
               Escolha seu perfil
             </h2>
-
-            <p className="mt-2 text-slate-600">
-              Isso nos ajuda a mostrar a experiência mais adequada para você.
-            </p>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <button
@@ -66,12 +121,14 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <form className="grid gap-5 md:grid-cols-2">
+          <form className="grid gap-5 md:grid-cols-2" onSubmit={handleSubmit}>
             <div className="md:col-span-2">
               <TextInput
                 id="name"
                 label="Nome completo"
                 placeholder="Digite seu nome completo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
 
@@ -80,6 +137,26 @@ export default function RegisterPage() {
               type="email"
               label="E-mail"
               placeholder="Digite seu e-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <TextInput
+              id="password"
+              type="password"
+              label="Senha"
+              placeholder="Crie uma senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <TextInput
+              id="confirmPassword"
+              type="password"
+              label="Confirmar senha"
+              placeholder="Repita a senha"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
 
             <TextInput
@@ -87,12 +164,16 @@ export default function RegisterPage() {
               type="number"
               label="Idade"
               placeholder="Digite sua idade"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
             />
 
             <TextInput
               id="neighborhood"
               label="Bairro"
               placeholder="Digite seu bairro"
+              value={neighborhood}
+              onChange={(e) => setNeighborhood(e.target.value)}
             />
 
             <TextInput
@@ -100,6 +181,8 @@ export default function RegisterPage() {
               type="tel"
               label="Telefone"
               placeholder="Digite seu telefone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
             />
 
             <div className="md:col-span-2">
@@ -115,6 +198,8 @@ export default function RegisterPage() {
                     ? "Ex.: WhatsApp, e-mail, currículo, internet"
                     : "Ex.: Informática básica, smartphone, internet, Office"
                 }
+                value={interest}
+                onChange={(e) => setInterest(e.target.value)}
               />
             </div>
 
@@ -132,8 +217,16 @@ export default function RegisterPage() {
                     : "Ex.: Tenho experiência com ferramentas digitais e gostaria de ajudar outras pessoas a aprender."
                 }
                 rows={5}
+                value={about}
+                onChange={(e) => setAbout(e.target.value)}
               />
             </div>
+
+            {errorMessage ? (
+              <div className="md:col-span-2 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+                {errorMessage}
+              </div>
+            ) : null}
 
             <div className="md:col-span-2">
               <PrimaryButton type="submit" fullWidth>

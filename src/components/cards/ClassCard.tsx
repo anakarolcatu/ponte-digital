@@ -1,4 +1,5 @@
-import { useAppContext } from "../../context/AppContext";
+import { Link } from "react-router-dom";
+import { useAppContext } from "../../context/useAppContext";
 import type { ClassItem } from "../../types/class";
 
 interface ClassCardProps {
@@ -6,9 +7,15 @@ interface ClassCardProps {
 }
 
 export function ClassCard({ item }: ClassCardProps) {
-  const { currentUser, enrolledClassIds, enrollInClass } = useAppContext();
+  const {
+    currentUser,
+    enrolledClassIds,
+    enrollInClass,
+    cancelEnrollment,
+  } = useAppContext();
 
   const isEnrolled = enrolledClassIds.includes(item.id);
+  const isLearner = currentUser?.role === "Aprendiz";
 
   function handleEnroll() {
     if (!currentUser) {
@@ -16,7 +23,16 @@ export function ClassCard({ item }: ClassCardProps) {
       return;
     }
 
+    if (!isLearner) {
+      alert("Somente aprendizes podem se inscrever em aulas.");
+      return;
+    }
+
     enrollInClass(item.id);
+  }
+
+  function handleCancelEnrollment() {
+    cancelEnrollment(item.id);
   }
 
   return (
@@ -34,6 +50,7 @@ export function ClassCard({ item }: ClassCardProps) {
       </div>
 
       <h3 className="text-2xl font-bold text-slate-800">{item.title}</h3>
+
       <p className="mt-3 leading-7 text-slate-600">{item.description}</p>
 
       <div className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2">
@@ -59,18 +76,39 @@ export function ClassCard({ item }: ClassCardProps) {
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <button
-          onClick={handleEnroll}
-          className={`rounded-2xl px-5 py-3 font-semibold text-white transition ${
-            isEnrolled ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {isEnrolled ? "Inscrição realizada" : "Inscrever-se"}
-        </button>
+        {isEnrolled ? (
+          <>
+            <button
+              type="button"
+              className="rounded-2xl bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700"
+            >
+              Inscrição realizada
+            </button>
 
-        <button className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50">
+            <button
+              type="button"
+              onClick={handleCancelEnrollment}
+              className="rounded-2xl border border-red-300 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50"
+            >
+              Cancelar inscrição
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={handleEnroll}
+            className="rounded-2xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+          >
+            Inscrever-se
+          </button>
+        )}
+
+        <Link
+          to={`/aulas/${item.id}`}
+          className="rounded-2xl border border-slate-300 px-5 py-3 text-center font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
           Ver detalhes
-        </button>
+        </Link>
       </div>
     </article>
   );

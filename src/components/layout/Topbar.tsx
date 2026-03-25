@@ -1,12 +1,8 @@
 import { Link } from "react-router-dom";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../context/useAppContext";
 
 export function Topbar() {
-  const { currentUser, setCurrentUser } = useAppContext();
-
-  function handleLogout() {
-    setCurrentUser(null);
-  }
+  const { currentUser, clearSession } = useAppContext();
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
@@ -23,7 +19,7 @@ export function Topbar() {
                 Olá, {currentUser.name}
               </span>
               <button
-                onClick={handleLogout}
+                onClick={clearSession}
                 className="cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
               >
                 Sair

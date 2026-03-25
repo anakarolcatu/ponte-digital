@@ -5,6 +5,7 @@ import HomePage from "../pages/Home";
 import LoginPage from "../pages/Login";
 import RegisterPage from "../pages/Register";
 import MyClassesPage from "../pages/MyClasses";
+import ClassDetailsPage from "../pages/ClassDetails";
 
 export function AppRoutes() {
   return (
@@ -14,6 +15,7 @@ export function AppRoutes() {
       <Route path="/cadastro" element={<RegisterPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/aulas" element={<ClassesPage />} />
+      <Route path="/aulas/:id" element={<ClassDetailsPage />} />
       <Route path="/minhas-aulas" element={<MyClassesPage />} />
     </Routes>
   );

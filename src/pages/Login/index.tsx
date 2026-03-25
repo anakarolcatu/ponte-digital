@@ -4,7 +4,7 @@ import { SectionHeader } from "../../components/common/SectionHeader";
 import { PrimaryButton } from "../../components/form/PrimaryButton";
 import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../context/useAppContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();

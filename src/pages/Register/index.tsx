@@ -5,7 +5,7 @@ import { PrimaryButton } from "../../components/form/PrimaryButton";
 import { TextAreaField } from "../../components/form/TextAreaField";
 import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../context/useAppContext";
 import type { UserRole } from "../../types/user";
 
 export default function RegisterPage() {

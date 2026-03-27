@@ -6,11 +6,28 @@ import { TextAreaField } from "../../components/form/TextAreaField";
 import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAppContext } from "../../context/useAppContext";
+import { api } from "../../services/api";
 import type { UserRole } from "../../types/user";
+
+interface RegisterResponse {
+  message: string;
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    age: number;
+    neighborhood: string;
+    phone: string;
+    role: "Aprendiz" | "Voluntário";
+    interest: string;
+    about: string;
+  };
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { registerUser } = useAppContext();
+  const { setCurrentUser, setToken } = useAppContext();
 
   const [selectedProfile, setSelectedProfile] = useState<UserRole>("Aprendiz");
   const [name, setName] = useState("");
@@ -23,8 +40,9 @@ export default function RegisterPage() {
   const [interest, setInterest] = useState("");
   const [about, setAbout] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (
@@ -52,21 +70,34 @@ export default function RegisterPage() {
       return;
     }
 
-    registerUser({
-      id: crypto.randomUUID(),
-      name,
-      email,
-      password,
-      age: Number(age),
-      neighborhood,
-      phone,
-      role: selectedProfile,
-      interest,
-      about,
-    });
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
 
-    setErrorMessage("");
-    navigate("/dashboard");
+      const response = await api.post<RegisterResponse>("/auth/register", {
+        name,
+        email,
+        password,
+        age: Number(age),
+        neighborhood,
+        phone,
+        role: selectedProfile,
+        interest,
+        about,
+      });
+
+      setCurrentUser(response.data.user);
+      setToken(response.data.token);
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      const backendMessage =
+        error?.response?.data?.message || "Não foi possível realizar o cadastro.";
+
+      setErrorMessage(backendMessage);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -211,11 +242,7 @@ export default function RegisterPage() {
                     ? "Conte um pouco sobre sua necessidade"
                     : "Conte um pouco sobre sua experiência"
                 }
-                placeholder={
-                  selectedProfile === "Aprendiz"
-                    ? "Ex.: Quero aprender a mexer no celular, criar e-mail e usar aplicativos do dia a dia."
-                    : "Ex.: Tenho experiência com ferramentas digitais e gostaria de ajudar outras pessoas a aprender."
-                }
+                placeholder="Escreva aqui"
                 rows={5}
                 value={about}
                 onChange={(e) => setAbout(e.target.value)}
@@ -230,7 +257,7 @@ export default function RegisterPage() {
 
             <div className="md:col-span-2">
               <PrimaryButton type="submit" fullWidth>
-                Criar cadastro
+                {isLoading ? "Criando cadastro..." : "Criar cadastro"}
               </PrimaryButton>
             </div>
           </form>
@@ -264,17 +291,6 @@ export default function RegisterPage() {
                 </p>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-3xl bg-blue-600 p-6 text-white shadow-sm">
-            <p className="text-sm font-semibold text-blue-100">Destaque</p>
-            <h3 className="mt-2 text-2xl font-bold">
-              Inclusão digital com empatia
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-blue-50">
-              Nosso foco é tornar a tecnologia mais próxima, simples e útil para
-              a vida real de cada participante.
-            </p>
           </div>
         </aside>
       </section>

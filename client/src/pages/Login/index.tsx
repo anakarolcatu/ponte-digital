@@ -5,16 +5,34 @@ import { PrimaryButton } from "../../components/form/PrimaryButton";
 import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAppContext } from "../../context/useAppContext";
+import { api } from "../../services/api";
+
+interface LoginResponse {
+  message: string;
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    age: number;
+    neighborhood: string;
+    phone: string;
+    role: "Aprendiz" | "Voluntário";
+    interest: string;
+    about: string;
+  };
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { loginUser } = useAppContext();
+  const { setCurrentUser, setToken } = useAppContext();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!email.trim() || !password.trim()) {
@@ -22,15 +40,27 @@ export default function LoginPage() {
       return;
     }
 
-    const success = loginUser(email, password);
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
 
-    if (!success) {
-      setErrorMessage("Usuário não encontrado. Tente outro e-mail.");
-      return;
+      const response = await api.post<LoginResponse>("/auth/login", {
+        email,
+        password,
+      });
+
+      setCurrentUser(response.data.user);
+      setToken(response.data.token);
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      const backendMessage =
+        error?.response?.data?.message || "Não foi possível fazer login.";
+
+      setErrorMessage(backendMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    setErrorMessage("");
-    navigate("/dashboard");
   }
 
   return (
@@ -80,7 +110,7 @@ export default function LoginPage() {
             ) : null}
 
             <PrimaryButton type="submit" fullWidth>
-              Entrar
+              {isLoading ? "Entrando..." : "Entrar"}
             </PrimaryButton>
           </form>
 

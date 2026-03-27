@@ -50,6 +50,9 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# Vite cache
+.vite/
+
 # Optional npm cache directory
 .npm
 

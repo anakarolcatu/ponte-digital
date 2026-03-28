@@ -6,6 +6,8 @@ import { TextInput } from "../../components/form/TextInput";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAppContext } from "../../context/useAppContext";
 import { api } from "../../services/api";
+import { getMyEnrollmentClassIds } from "../../services/enrollment";
+import axios from "axios";
 
 interface LoginResponse {
   message: string;
@@ -23,9 +25,13 @@ interface LoginResponse {
   };
 }
 
+interface ApiErrorResponse {
+  message?: string;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setCurrentUser, setToken } = useAppContext();
+  const { setCurrentUser, setToken, setEnrolledClassIds } = useAppContext();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,12 +58,20 @@ export default function LoginPage() {
       setCurrentUser(response.data.user);
       setToken(response.data.token);
 
-      navigate("/dashboard");
-    } catch (error: any) {
-      const backendMessage =
-        error?.response?.data?.message || "Não foi possível fazer login.";
+      const enrolledIds = await getMyEnrollmentClassIds(response.data.token);
+      setEnrolledClassIds(enrolledIds);
 
-      setErrorMessage(backendMessage);
+      void navigate("/dashboard");
+    } catch (error: unknown) {
+      console.error("erro no login:", error);
+      if (axios.isAxiosError<ApiErrorResponse>(error)) {
+        const backendMessage =
+          error.response?.data?.message ?? "Não foi possível fazer login.";
+
+        setErrorMessage(backendMessage);
+      } else {
+        setErrorMessage("Erro inesperado.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +98,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>
             <TextInput
               id="email"
               type="email"
@@ -140,9 +154,12 @@ export default function LoginPage() {
               </div>
 
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="font-semibold text-slate-800">Rede colaborativa</p>
+                <p className="font-semibold text-slate-800">
+                  Rede colaborativa
+                </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Conexão entre voluntários e aprendizes em uma comunidade de apoio.
+                  Conexão entre voluntários e aprendizes em uma comunidade de
+                  apoio.
                 </p>
               </div>
 

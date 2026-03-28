@@ -1,5 +1,10 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useAppContext } from "../../context/useAppContext";
+import {
+  cancelEnrollmentRequest,
+  enrollInClassRequest,
+} from "../../services/enrollment";
 import type { ClassItem } from "../../types/class";
 
 interface ClassCardProps {
@@ -9,16 +14,18 @@ interface ClassCardProps {
 export function ClassCard({ item }: ClassCardProps) {
   const {
     currentUser,
+    token,
     enrolledClassIds,
-    enrollInClass,
-    cancelEnrollment,
+    setEnrolledClassIds,
   } = useAppContext();
 
-  const isEnrolled = enrolledClassIds.includes(item.id);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEnrolled = enrolledClassIds.includes(item._id);
   const isLearner = currentUser?.role === "Aprendiz";
 
-  function handleEnroll() {
-    if (!currentUser) {
+  async function handleEnroll() {
+    if (!currentUser || !token) {
       alert("Faça login ou cadastro para se inscrever em uma aula.");
       return;
     }
@@ -28,16 +35,42 @@ export function ClassCard({ item }: ClassCardProps) {
       return;
     }
 
-    enrollInClass(item.id);
+    try {
+      setIsSubmitting(true);
+
+      await enrollInClassRequest(token, item._id);
+
+      setEnrolledClassIds([...enrolledClassIds, item._id]);
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível realizar a inscrição.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  function handleCancelEnrollment() {
-    cancelEnrollment(item.id);
+  async function handleCancelEnrollment() {
+    if (!token) return;
+
+    try {
+      setIsSubmitting(true);
+
+      await cancelEnrollmentRequest(token, item._id);
+
+      setEnrolledClassIds(
+        enrolledClassIds.filter((classId) => classId !== item._id)
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível cancelar a inscrição.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="mb-5 h-40 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-50" />
+      <div className="mb-5 h-40 rounded-2xl bg-linear-to-br from-blue-100 to-sky-50" />
 
       <div className="mb-3 flex flex-wrap gap-2">
         <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -66,7 +99,7 @@ export function ClassCard({ item }: ClassCardProps) {
 
         <div>
           <p className="text-sm text-slate-500">Voluntário</p>
-          <p className="font-semibold text-slate-800">{item.teacher}</p>
+          <p className="font-semibold text-slate-800">{item.teacherName}</p>
         </div>
 
         <div>
@@ -87,24 +120,26 @@ export function ClassCard({ item }: ClassCardProps) {
 
             <button
               type="button"
-              onClick={handleCancelEnrollment}
-              className="rounded-2xl border border-red-300 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50"
+              onClick={() => void handleCancelEnrollment()}
+              disabled={isSubmitting}
+              className="rounded-2xl border border-red-300 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
             >
-              Cancelar inscrição
+              {isSubmitting ? "Cancelando..." : "Cancelar inscrição"}
             </button>
           </>
         ) : (
           <button
             type="button"
-            onClick={handleEnroll}
-            className="rounded-2xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+            onClick={() => void handleEnroll()}
+            disabled={isSubmitting}
+            className="rounded-2xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
-            Inscrever-se
+            {isSubmitting ? "Inscrevendo..." : "Inscrever-se"}
           </button>
         )}
 
         <Link
-          to={`/aulas/${item.id}`}
+          to={`/aulas/${item._id}`}
           className="rounded-2xl border border-slate-300 px-5 py-3 text-center font-semibold text-slate-700 transition hover:bg-slate-50"
         >
           Ver detalhes

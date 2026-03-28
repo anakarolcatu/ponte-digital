@@ -1,16 +1,13 @@
-import type { ClassDetails } from "../../data/classDetails";
 import type { ClassItem } from "../../types/class";
 import type { User } from "../../types/user";
 
 interface VolunteerClassCardProps {
   item: ClassItem;
-  details?: ClassDetails;
   enrolledUsers: User[];
 }
 
 export function VolunteerClassCard({
   item,
-  details,
   enrolledUsers,
 }: VolunteerClassCardProps) {
   return (
@@ -42,7 +39,7 @@ export function VolunteerClassCard({
 
         <div>
           <p className="text-sm text-slate-500">Voluntário responsável</p>
-          <p className="font-semibold text-slate-800">{item.teacher}</p>
+          <p className="font-semibold text-slate-800">{item.teacherName}</p>
         </div>
 
         <div>
@@ -62,22 +59,20 @@ export function VolunteerClassCard({
         <div className="rounded-2xl border border-slate-200 p-4">
           <p className="text-sm text-slate-500">Público da turma</p>
           <p className="mt-1 font-semibold text-slate-800">
-            {details?.targetAudience ?? "Informação não disponível"}
+            {item.targetAudience}
           </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 p-4">
           <p className="text-sm text-slate-500">Objetivo da aula</p>
-          <p className="mt-1 leading-7 text-slate-700">
-            {details?.objective ?? "Informação não disponível"}
-          </p>
+          <p className="mt-1 leading-7 text-slate-700">{item.objective}</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 p-4">
           <p className="text-sm text-slate-500">Materiais sugeridos</p>
-          {details?.materials?.length ? (
+          {item.materials.length ? (
             <ul className="mt-2 space-y-2 text-slate-700">
-              {details.materials.map((material) => (
+              {item.materials.map((material) => (
                 <li key={material}>• {material}</li>
               ))}
             </ul>
@@ -116,7 +111,7 @@ export function VolunteerClassCard({
             Observações para condução
           </p>
           <p className="mt-2 leading-7 text-slate-700">
-            {details?.notes ?? "Nenhuma observação disponível."}
+            {item.notes || "Nenhuma observação disponível."}
           </p>
         </div>
       </div>

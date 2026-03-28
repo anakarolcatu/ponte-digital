@@ -148,3 +148,41 @@ export async function login(request: Request, response: Response) {
     });
   }
 }
+
+export async function me(request: Request, response: Response) {
+  try {
+    const userId = request.userId;
+
+    if (!userId) {
+      return response.status(401).json({
+        message: "Usuário não autenticado.",
+      });
+    }
+
+    const user = await UserModel.findById(userId).select("-password");
+
+    if (!user) {
+      return response.status(404).json({
+        message: "Usuário não encontrado.",
+      });
+    }
+
+    return response.status(200).json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+      neighborhood: user.neighborhood,
+      phone: user.phone,
+      role: user.role,
+      interest: user.interest,
+      about: user.about,
+    });
+  } catch (error) {
+    console.error("Erro ao buscar usuário autenticado:", error);
+
+    return response.status(500).json({
+      message: "Erro interno ao buscar usuário autenticado.",
+    });
+  }
+}

@@ -8,6 +8,8 @@ import { AppShell } from "../../components/layout/AppShell";
 import { useAppContext } from "../../context/useAppContext";
 import { api } from "../../services/api";
 import type { UserRole } from "../../types/user";
+import { getMyEnrollmentClassIds } from "../../services/enrollment";
+import axios from "axios";
 
 interface RegisterResponse {
   message: string;
@@ -25,9 +27,13 @@ interface RegisterResponse {
   };
 }
 
+interface ApiErrorResponse {
+  message?: string;
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { setCurrentUser, setToken } = useAppContext();
+  const { setCurrentUser, setToken, setEnrolledClassIds } = useAppContext();
 
   const [selectedProfile, setSelectedProfile] = useState<UserRole>("Aprendiz");
   const [name, setName] = useState("");
@@ -89,12 +95,19 @@ export default function RegisterPage() {
       setCurrentUser(response.data.user);
       setToken(response.data.token);
 
-      navigate("/dashboard");
-    } catch (error: any) {
-      const backendMessage =
-        error?.response?.data?.message || "Não foi possível realizar o cadastro.";
+      const enrolledIds = await getMyEnrollmentClassIds(response.data.token);
+      setEnrolledClassIds(enrolledIds);
 
-      setErrorMessage(backendMessage);
+      void navigate("/dashboard");
+    } catch (error: unknown) {
+      if (axios.isAxiosError<ApiErrorResponse>(error)) {
+        const backendMessage =
+          error.response?.data?.message ?? "Não foi possível realizar o cadastro.";
+
+        setErrorMessage(backendMessage);
+      } else {
+        setErrorMessage("Erro inesperado.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -152,7 +165,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <form className="grid gap-5 md:grid-cols-2" onSubmit={handleSubmit}>
+          <form className="grid gap-5 md:grid-cols-2" onSubmit={(event) => void handleSubmit(event)}>
             <div className="md:col-span-2">
               <TextInput
                 id="name"

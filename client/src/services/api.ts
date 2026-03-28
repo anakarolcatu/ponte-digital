@@ -1,5 +1,11 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_URL;
+
+if (!baseURL) {
+  throw new Error("VITE_API_URL não foi definida.");
+}
+
 export const api = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL,
 });

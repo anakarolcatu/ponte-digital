@@ -8,9 +8,7 @@ export interface AppContextData {
   setToken: (token: string | null) => void;
   clearSession: () => void;
   enrolledClassIds: string[];
-  enrollInClass: (classId: string) => void;
-  cancelEnrollment: (classId: string) => void;
-  getEnrolledUsersByClass: (classId: string) => User[];
+  setEnrolledClassIds: (classIds: string[]) => void;
 }
 
 export const AppContext = createContext<AppContextData | undefined>(undefined);

@@ -1,49 +1,79 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { EmptyState } from "../../components/common/EmptyState";
 import { SectionHeader } from "../../components/common/SectionHeader";
 import { AppShell } from "../../components/layout/AppShell";
 import { useAppContext } from "../../context/useAppContext";
-import { classDetailsMock } from "../../data/classDetails";
-import { classesMock } from "../../data/classes";
+import { api } from "../../services/api";
+import {
+  cancelEnrollmentRequest,
+  enrollInClassRequest,
+} from "../../services/enrollment";
+import type { ClassItem } from "../../types/class";
 
 export default function ClassDetailsPage() {
   const { id } = useParams();
 
   const {
     currentUser,
+    token,
     enrolledClassIds,
-    enrollInClass,
-    cancelEnrollment,
-    getEnrolledUsersByClass,
+    setEnrolledClassIds,
   } = useAppContext();
 
-  const classItem = classesMock.find((item) => item.id === id);
+  const [classItem, setClassItem] = useState<ClassItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  if (!classItem) {
+  useEffect(() => {
+    async function loadClassDetails() {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const response = await api.get<ClassItem>(`/classes/${id}`);
+        setClassItem(response.data);
+      } catch (error) {
+        console.error(error);
+        setErrorMessage("Aula não encontrada ou indisponível.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (id) {
+      void loadClassDetails();
+    }
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <AppShell>
+        <section className="rounded-3xl bg-white p-10 text-center shadow-sm">
+          <p className="text-slate-600">Carregando detalhes da aula...</p>
+        </section>
+      </AppShell>
+    );
+  }
+
+  if (errorMessage || !classItem) {
     return (
       <AppShell>
         <EmptyState
           title="Aula não encontrada"
-          description="A aula que você tentou acessar não existe ou não está disponível."
+          description={errorMessage || "A aula que você tentou acessar não existe."}
         />
       </AppShell>
     );
   }
 
-  const classId = classItem.id;
-
-  const classDetails = classDetailsMock.find(
-    (item) => item.classId === classId
-  );
-
+  const classId = classItem._id;
   const isEnrolled = enrolledClassIds.includes(classId);
   const isLearner = currentUser?.role === "Aprendiz";
   const isVolunteer = currentUser?.role === "Voluntário";
 
-  const enrolledUsers = getEnrolledUsersByClass(classId);
-
-  function handleEnroll() {
-    if (!currentUser) {
+  async function handleEnroll() {
+    if (!currentUser || !token) {
       alert("Faça login ou cadastro para se inscrever em uma aula.");
       return;
     }
@@ -53,11 +83,30 @@ export default function ClassDetailsPage() {
       return;
     }
 
-    enrollInClass(classId);
+    try {
+      await enrollInClassRequest(token, classId);
+      setEnrolledClassIds([...enrolledClassIds, classId]);
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível realizar a inscrição.");
+    }
   }
 
-  function handleCancelEnrollment() {
-    cancelEnrollment(classId);
+  async function handleCancelEnrollment() {
+    if (!token) {
+      alert("Faça login novamente para cancelar a inscrição.");
+      return;
+    }
+
+    try {
+      await cancelEnrollmentRequest(token, classId);
+      setEnrolledClassIds(
+        enrolledClassIds.filter((enrolledId) => enrolledId !== classId)
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível cancelar a inscrição.");
+    }
   }
 
   return (
@@ -113,7 +162,7 @@ export default function ClassDetailsPage() {
             <div className="rounded-2xl bg-slate-50 p-4">
               <p className="text-sm text-slate-500">Voluntário responsável</p>
               <p className="mt-1 font-semibold text-slate-800">
-                {classItem.teacher}
+                {classItem.teacherName}
               </p>
             </div>
 
@@ -129,24 +178,23 @@ export default function ClassDetailsPage() {
             <div className="rounded-2xl border border-slate-200 p-5">
               <p className="text-sm text-slate-500">Objetivo da aula</p>
               <p className="mt-2 leading-7 text-slate-700">
-                {classDetails?.objective ?? "Informação não disponível."}
+                {classItem.objective}
               </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 p-5">
               <p className="text-sm text-slate-500">Público-alvo</p>
               <p className="mt-2 leading-7 text-slate-700">
-                {classDetails?.targetAudience ??
-                  "Informação não disponível."}
+                {classItem.targetAudience}
               </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 p-5">
               <p className="text-sm text-slate-500">Materiais sugeridos</p>
 
-              {classDetails?.materials?.length ? (
+              {classItem.materials.length > 0 ? (
                 <ul className="mt-3 space-y-2 text-slate-700">
-                  {classDetails.materials.map((material) => (
+                  {classItem.materials.map((material) => (
                     <li key={material}>• {material}</li>
                   ))}
                 </ul>
@@ -162,7 +210,7 @@ export default function ClassDetailsPage() {
                 Observações importantes
               </p>
               <p className="mt-2 leading-7 text-slate-700">
-                {classDetails?.notes ?? "Nenhuma observação disponível."}
+                {classItem.notes || "Nenhuma observação disponível."}
               </p>
             </div>
           </div>
@@ -175,13 +223,6 @@ export default function ClassDetailsPage() {
             </h3>
 
             <div className="mt-5 space-y-4">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">Inscritos atualmente</p>
-                <p className="mt-1 text-2xl font-bold text-slate-800">
-                  {enrolledUsers.length}
-                </p>
-              </div>
-
               {isEnrolled ? (
                 <>
                   <button
@@ -193,7 +234,7 @@ export default function ClassDetailsPage() {
 
                   <button
                     type="button"
-                    onClick={handleCancelEnrollment}
+                    onClick={() => void handleCancelEnrollment()}
                     className="w-full rounded-2xl border border-red-300 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-50"
                   >
                     Cancelar inscrição
@@ -202,7 +243,7 @@ export default function ClassDetailsPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={handleEnroll}
+                  onClick={() => void handleEnroll()}
                   className="w-full rounded-2xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
                 >
                   Inscrever-se
@@ -229,11 +270,11 @@ export default function ClassDetailsPage() {
               Voluntário responsável
             </h3>
 
-            <p className="mt-3 text-slate-600">{classItem.teacher}</p>
+            <p className="mt-3 text-slate-600">{classItem.teacherName}</p>
 
             <p className="mt-3 text-sm leading-6 text-slate-500">
-              O voluntário conduz a aula com linguagem acessível, apoio
-              prático e foco na autonomia digital dos participantes.
+              O voluntário conduz a aula com linguagem acessível, apoio prático e
+              foco na autonomia digital dos participantes.
             </p>
           </div>
         </aside>

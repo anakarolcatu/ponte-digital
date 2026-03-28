@@ -1,16 +1,48 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClassCard } from "../../components/cards/ClassCard";
 import { EmptyState } from "../../components/common/EmptyState";
 import { SectionHeader } from "../../components/common/SectionHeader";
-import { categories, classesMock } from "../../data/classes";
 import { AppShell } from "../../components/layout/AppShell";
+import { api } from "../../services/api";
+import type { ClassItem } from "../../types/class";
+
+const categories = [
+  "Todas",
+  "Smartphone",
+  "Internet",
+  "Emprego",
+  "Segurança",
+  "Cidadania digital",
+];
 
 export default function ClassesPage() {
+  const [classes, setClasses] = useState<ClassItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    async function loadClasses() {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const response = await api.get<ClassItem[]>("/classes");
+        setClasses(response.data);
+      } catch (error) {
+        console.error(error);
+        setErrorMessage("Não foi possível carregar as aulas.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadClasses();
+  }, []);
 
   const filteredClasses = useMemo(() => {
-    return classesMock.filter((item) => {
+    return classes.filter((item) => {
       const matchesCategory =
         selectedCategory === "Todas" || item.category === selectedCategory;
 
@@ -23,7 +55,7 @@ export default function ClassesPage() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [search, selectedCategory]);
+  }, [classes, search, selectedCategory]);
 
   return (
     <AppShell>
@@ -31,74 +63,44 @@ export default function ClassesPage() {
         <SectionHeader
           badge="Catálogo de aulas"
           title="Encontre uma aula para começar sua jornada digital"
-          description="Escolha aulas com linguagem simples e apoio humanizado. Você pode buscar por tema ou filtrar pela categoria que mais combina com o que deseja aprender."
+          description="Escolha aulas com linguagem simples e apoio humanizado."
         />
       </section>
 
       <section className="mb-8 rounded-3xl bg-white p-6 shadow-sm">
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <div>
-            <label
-              htmlFor="search"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Buscar aula
-            </label>
+          <input
+            placeholder="Buscar aula..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="rounded-2xl border border-slate-300 px-4 py-3"
+          />
 
-            <input
-              id="search"
-              type="text"
-              placeholder="Ex.: WhatsApp, e-mail, currículo..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-800 outline-none transition focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="category"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Categoria
-            </label>
-
-            <select
-              id="category"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-800 outline-none transition focus:border-blue-500"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="rounded-2xl border border-slate-300 px-4 py-3"
+          >
+            {categories.map((category) => (
+              <option key={category}>{category}</option>
+            ))}
+          </select>
         </div>
       </section>
 
-      <section className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-800">
-            Aulas disponíveis
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {filteredClasses.length} aula(s) encontrada(s)
-          </p>
-        </div>
-      </section>
-
-      {filteredClasses.length === 0 ? (
+      {isLoading ? (
+        <p className="text-center">Carregando aulas...</p>
+      ) : errorMessage ? (
+        <EmptyState title="Erro" description={errorMessage} />
+      ) : filteredClasses.length === 0 ? (
         <EmptyState
           title="Nenhuma aula encontrada"
-          description="Tente buscar com outro termo ou selecione uma categoria diferente."
+          description="Tente outro filtro"
         />
       ) : (
         <section className="grid gap-6 xl:grid-cols-2">
           {filteredClasses.map((item) => (
-            <ClassCard key={item.id} item={item} />
+            <ClassCard key={item._id} item={item} />
           ))}
         </section>
       )}

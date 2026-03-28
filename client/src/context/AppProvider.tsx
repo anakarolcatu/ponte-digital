@@ -7,108 +7,72 @@ import {
 } from "react";
 import { AppContext } from "./AppContext";
 import type { User } from "../types/user";
-
-type EnrollmentsByUser = Record<string, string[]>;
+import { getMyEnrollmentClassIds } from "../services/enrollment";
+import { getAuthenticatedUser } from "../services/auth";
 
 const STORAGE_KEYS = {
   currentUser: "ponte-digital:currentUser",
   token: "ponte-digital:token",
-  enrollmentsByUser: "ponte-digital:enrollmentsByUser",
 };
 
 interface AppProviderProps {
   children: ReactNode;
 }
 
-function getStoredCurrentUser(): User | null {
-  const stored = localStorage.getItem(STORAGE_KEYS.currentUser);
-  if (!stored) return null;
-
-  try {
-    return JSON.parse(stored) as User;
-  } catch {
-    return null;
-  }
-}
-
 function getStoredToken(): string | null {
   return localStorage.getItem(STORAGE_KEYS.token);
 }
 
-function getStoredEnrollmentsByUser(): EnrollmentsByUser {
-  const stored = localStorage.getItem(STORAGE_KEYS.enrollmentsByUser);
-  if (!stored) return {};
-
-  try {
-    const parsed = JSON.parse(stored) as EnrollmentsByUser;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
 export function AppProvider({ children }: AppProviderProps) {
-  const [currentUser, setCurrentUser] = useState<User | null>(() =>
-    getStoredCurrentUser()
-  );
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => getStoredToken());
-  const [enrollmentsByUser, setEnrollmentsByUser] = useState<EnrollmentsByUser>(
-    () => getStoredEnrollmentsByUser()
-  );
-
-  const enrolledClassIds = useMemo(() => {
-    if (!currentUser) return [];
-    return enrollmentsByUser[currentUser.id] ?? [];
-  }, [currentUser, enrollmentsByUser]);
-
-  const enrollInClass = useCallback(
-    (classId: string) => {
-      if (!currentUser) return;
-
-      setEnrollmentsByUser((prev) => {
-        const currentEnrollments = prev[currentUser.id] ?? [];
-
-        if (currentEnrollments.includes(classId)) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          [currentUser.id]: [...currentEnrollments, classId],
-        };
-      });
-    },
-    [currentUser]
-  );
-
-  const cancelEnrollment = useCallback(
-    (classId: string) => {
-      if (!currentUser) return;
-
-      setEnrollmentsByUser((prev) => {
-        const currentEnrollments = prev[currentUser.id] ?? [];
-
-        return {
-          ...prev,
-          [currentUser.id]: currentEnrollments.filter((id) => id !== classId),
-        };
-      });
-    },
-    [currentUser]
-  );
-
-  const getEnrolledUsersByClass = useCallback((_classId: string) => {
-    return [];
-  }, []);
+  const [enrolledClassIds, setEnrolledClassIds] = useState<string[]>([]);
 
   const clearSession = useCallback(() => {
     setCurrentUser(null);
     setToken(null);
+    setEnrolledClassIds([]);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(currentUser));
-  }, [currentUser]);
+  async function restoreSession() {
+    if (!token) {
+      setCurrentUser(null);
+      setEnrolledClassIds([]);
+      return;
+    }
+
+    try {
+      const user = await getAuthenticatedUser(token);
+      setCurrentUser(user);
+    } catch (error) {
+      console.error("Erro ao restaurar sessão:", error);
+      setCurrentUser(null);
+      setToken(null);
+      setEnrolledClassIds([]);
+    }
+  }
+
+  void restoreSession();
+}, [token]);
+
+  useEffect(() => {
+  async function loadEnrollments() {
+    if (!token) {
+      setEnrolledClassIds([]);
+      return;
+    }
+
+    try {
+      const enrolledIds = await getMyEnrollmentClassIds(token);
+      setEnrolledClassIds(enrolledIds);
+    } catch (error) {
+      console.error("Erro ao carregar inscrições do usuário:", error);
+    }
+  }
+
+    void loadEnrollments();
+  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -118,13 +82,6 @@ export function AppProvider({ children }: AppProviderProps) {
     }
   }, [token]);
 
-  useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEYS.enrollmentsByUser,
-      JSON.stringify(enrollmentsByUser)
-    );
-  }, [enrollmentsByUser]);
-
   const value = useMemo(
     () => ({
       currentUser,
@@ -133,19 +90,9 @@ export function AppProvider({ children }: AppProviderProps) {
       setToken,
       clearSession,
       enrolledClassIds,
-      enrollInClass,
-      cancelEnrollment,
-      getEnrolledUsersByClass,
+      setEnrolledClassIds,
     }),
-    [
-      currentUser,
-      token,
-      clearSession,
-      enrolledClassIds,
-      enrollInClass,
-      cancelEnrollment,
-      getEnrolledUsersByClass,
-    ]
+    [currentUser, token, clearSession, enrolledClassIds]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

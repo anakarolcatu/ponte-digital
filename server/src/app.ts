@@ -7,9 +7,31 @@ import { enrollmentRoutes } from "./routes/enrollment.routes.js";
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_URL,
+].filter((origin): origin is string => Boolean(origin));
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (origin.endsWith(".vercel.app")) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origem não permitida pelo CORS."));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

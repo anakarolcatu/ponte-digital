@@ -1,4 +1,5 @@
 import { AppShell } from "../../components/layout/AppShell";
+import { Link } from "react-router-dom";
 
 const classes = [
   {
@@ -28,13 +29,19 @@ export default function HomePage() {
         </p>
 
         <div className="mt-6 flex gap-3">
-          <button className="rounded-xl bg-white px-5 py-3 font-semibold text-blue-700">
+          <Link
+            to="/cadastro"
+            className="rounded-xl bg-white px-5 py-3 font-semibold text-blue-700"
+          >
             Quero aprender
-          </button>
+          </Link>
 
-          <button className="rounded-xl border border-white px-5 py-3 font-semibold">
+          <Link
+            to="/cadastro"
+            className="rounded-xl border border-white px-5 py-3 font-semibold"
+          >
             Quero ensinar
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -57,9 +64,12 @@ export default function HomePage() {
                 {item.title}
               </h3>
 
-              <button className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+              <Link
+                to="/aulas"
+                className="mt-5 inline-block rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+              >
                 Ver aula
-              </button>
+              </Link>
             </article>
           ))}
         </div>
